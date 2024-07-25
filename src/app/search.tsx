@@ -42,6 +42,7 @@ export default function SearchPage() {
     vector_text: "",
   });
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
+  const [downloadEnabled, setDownloadEnabled] = useState(false);
 
   const getLoadEmbeddingsProgress = async () => {
     const data = (await axios.get("/api/milvus/loadEmbeddings/progress")).data;
@@ -110,6 +111,7 @@ export default function SearchPage() {
         search: true,
       }));
       const res = await axios.post(`/api/milvus/search`, { text });
+      console.log("searching")
       setData(res.data?.results || []);
     } finally {
       setLoading((v) => ({
@@ -119,6 +121,20 @@ export default function SearchPage() {
     }
   };
 
+  const downloadJSON = () => {
+    if (!downloadEnabled || data.length === 0) return;
+
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "search_results.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
   // Upon component mounting, initialize Milvus and load CSV data for utilization as random queries
   useEffect(() => {
     const init = async () => {

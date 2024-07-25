@@ -11,6 +11,7 @@ export const COLLECTION_NAME = "main";
 export const VECTOR_FIELD_NAME = "vector";
 export const METRIC_TYPE = "COSINE";
 export const INDEX_TYPE = "AUTOINDEX";
+// export const INDEX_TYPE = ["AUTOINDEX", "HNSW"];
 
 interface DataItem {
   vector_id: string;
