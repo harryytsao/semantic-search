@@ -18,6 +18,10 @@ import {
 import axios from "axios";
 import { useEffect, useState } from "react";
 import React from "react";
+import toast, { Toaster } from 'react-hot-toast';
+import { setDefaultHighWaterMark } from "stream";
+
+
 
 let timer: NodeJS.Timeout | null = null;
 
@@ -42,7 +46,16 @@ export default function SearchPage() {
     vector_text: "",
   });
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
-  // const [downloadEnabled, setDownloadEnabled] = useState(false);
+  const [dbBuilt, setdbBuilt] = useState(false);
+  const notify = () => toast('Vector database already created');
+
+  const handleBuildDatabase = () => {
+    if (dbBuilt) {
+      notify();
+    } else {
+      loadCsv();
+    }
+  };
 
   const getLoadEmbeddingsProgress = async () => {
     const data = (await axios.get("/api/milvus/loadEmbeddings/progress")).data;
@@ -50,7 +63,6 @@ export default function SearchPage() {
     const isInserting = data.isInserting;
     const errorMsg = data.errorMsg;
 
-    console.log(`SEARCH PROGRESS: ${progress}`)
     // If there is an error message, alert the user and stop loading
     if (errorMsg) {
       window.alert(errorMsg);
@@ -64,6 +76,7 @@ export default function SearchPage() {
 
     // Update the progress state
     setInsertProgress(progress);
+    console.log(progress)
     // Update the loading state based on whether data is still being inserted
     setLoading((v) => ({
       ...v,
@@ -94,7 +107,8 @@ export default function SearchPage() {
       await axios.get(`/api/milvus/loadEmbeddings`);
       setTimeout(() => {
         getLoadEmbeddingsProgress();
-      }, 1000);
+      }, 8000);
+      setdbBuilt(true);
     } catch (e) {
       window.alert(`Load Embeddings folder failed:${e}`);
       setLoading((v) => ({
@@ -136,7 +150,7 @@ export default function SearchPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `results_for_query:_${searchValue}.json`;
+    link.download = `results_for_query:${searchValue}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -173,21 +187,22 @@ export default function SearchPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="logo" className="w-16 h-16 rounded-full object-cover" />
         </a>
+        <Toaster />
         <div className="flex gap-2">
           {/* Note: API requests may timeout on Vercel's free plan as it has a maximum timeout limit of 10 seconds*/}
           {SUPPORT_IMPORT && (
             <>
               <Button
-                onClick={() => {
-                  loadCsv();
-                }}
+                onClick={handleBuildDatabase}
                 isLoading={loading.insertCsv}
                 isDisabled={loading.page}
                 variant="faded"
               >
-                {!loading.insertCsv
-                  ? `Embed and insert data`
-                  : `Embedding and inserting ...(${insertProgress}%)`}
+                {dbBuilt
+                  ? "Build Vector Database"
+                  : !loading.insertCsv
+                    ? "Build Vector Database"
+                    : "Embedding and inserting in progress..."}
               </Button>
               <Button onClick={() => downloadJSON(value)} variant="faded">
                 Download JSON Results
