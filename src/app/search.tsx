@@ -42,7 +42,7 @@ export default function SearchPage() {
     vector_text: "",
   });
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
-  const [downloadEnabled, setDownloadEnabled] = useState(false);
+  // const [downloadEnabled, setDownloadEnabled] = useState(false);
 
   const getLoadEmbeddingsProgress = async () => {
     const data = (await axios.get("/api/milvus/loadEmbeddings/progress")).data;
@@ -50,6 +50,7 @@ export default function SearchPage() {
     const isInserting = data.isInserting;
     const errorMsg = data.errorMsg;
 
+    console.log(`SEARCH PROGRESS: ${progress}`)
     // If there is an error message, alert the user and stop loading
     if (errorMsg) {
       window.alert(errorMsg);
@@ -121,15 +122,21 @@ export default function SearchPage() {
     }
   };
 
-  const downloadJSON = () => {
-    if (!downloadEnabled || data.length === 0) return;
+  const downloadJSON = (searchValue: string) => {
+    const jsonData = data.map((item) => {
+      const transformedItem: { [key: string]: string | number } = {};
+      HEADERS.forEach((header) => {
+        transformedItem[header] = item[header];
+      });
+      return transformedItem;
+    });
 
-    const jsonString = JSON.stringify(data, null, 2);
+    const jsonString = JSON.stringify({ searchQuery: searchValue, results: jsonData }, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "search_results.json";
+    link.download = `results_for_query:_${searchValue}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -143,12 +150,7 @@ export default function SearchPage() {
           ...v,
           page: true,
         }));
-        // const [csvData] = await Promise.all([
-        //   await axios.get("/api/milvus/loadEmbeddings"),
-        //   await axios.get(`/api/milvus`),
-        //   await getLoadEmbeddingsProgress(),
-        // ]);
-        // setDataItem(csvData.data as DataItem[]);
+
       } catch (error) {
         window.alert(
           "Init Milvus and create collection failed, please check the your env. "
@@ -163,39 +165,6 @@ export default function SearchPage() {
 
     init();
   }, []);
-
-  // Function to search by random question
-  // const searchByRandom = async () => {
-  //   // Generate a random index
-  //   const randomIndex = Math.floor(Math.random() * csvData.length);
-  //   // Get the question at the random index
-  //   const randomQuestion = csvData[randomIndex].question;
-  //   // Set the value to the random question
-  //   setValue(randomQuestion);
-  //   // Perform the search
-  //   await search(randomQuestion);
-  // };
-
-  // Function to handle data insertion
-  // const handleInsert = async () => {
-  //   try {
-  //     setLoading((v) => ({
-  //       ...v,
-  //       insert: true,
-  //     }));
-  //     // Post the form data to the insert API
-  //     await axios.post(`/api/milvus/insert`, form);
-  //     // Close the modal after successful insertion
-  //     onClose();
-  //   } catch (e) {
-  //     // Alert the user if insertion fails
-  //     window.alert(`Insert data failed:${e}`);
-  //     setLoading((v) => ({
-  //       ...v,
-  //       insert: false,
-  //     }));
-  //   }
-  // };
 
   return (
     <main className="container mx-auto">
@@ -220,14 +189,10 @@ export default function SearchPage() {
                   ? `Embed and insert data`
                   : `Embedding and inserting ...(${insertProgress}%)`}
               </Button>
-              {/* Button to open the insert data modal */}
-              {/* <Button
-                onPress={onOpen}
-                variant="faded"
-                isDisabled={loading.page}
-              >
-                Insert data
-              </Button> */}
+              <Button onClick={() => downloadJSON(value)} variant="faded">
+                Download JSON Results
+              </Button>
+
             </>
           )}
         </div>
@@ -339,5 +304,4 @@ export default function SearchPage() {
       </Modal>
     </main>
   );
-
 }
