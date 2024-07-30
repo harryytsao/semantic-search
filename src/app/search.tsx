@@ -47,10 +47,14 @@ export default function SearchPage() {
   });
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [dbBuilt, setdbBuilt] = useState(false);
+  const [dbHasContent, setDbHasContent] = useState(false);
   const notify = () => toast('Vector database already created');
 
-  const handleBuildDatabase = () => {
-    if (dbBuilt) {
+  const handleBuildDatabase = async () => {
+    const hasContent = (await axios.get("/api/milvus/loadEmbeddings/progress")).data.content;
+    console.log(`has content: ${hasContent}`)
+    setDbHasContent(hasContent);
+    if (dbHasContent) {
       notify();
     } else {
       loadCsv();
@@ -107,7 +111,7 @@ export default function SearchPage() {
       await axios.get(`/api/milvus/loadEmbeddings`);
       setTimeout(() => {
         getLoadEmbeddingsProgress();
-      }, 8000);
+      }, 1000);
       setdbBuilt(true);
     } catch (e) {
       window.alert(`Load Embeddings folder failed:${e}`);
@@ -160,20 +164,11 @@ export default function SearchPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        setLoading((v) => ({
-          ...v,
-          page: true,
-        }));
-
+        setLoading((v) => ({ ...v, page: true }));
       } catch (error) {
-        window.alert(
-          "Init Milvus and create collection failed, please check the your env. "
-        );
+        window.alert("Init Milvus and create collection failed, please check your env.");
       } finally {
-        setLoading((v) => ({
-          ...v,
-          page: false,
-        }));
+        setLoading((v) => ({ ...v, page: false }));
       }
     };
 
@@ -196,18 +191,18 @@ export default function SearchPage() {
                 onClick={handleBuildDatabase}
                 isLoading={loading.insertCsv}
                 isDisabled={loading.page}
-                variant="faded"
+                style={{
+                  opacity: 0, // Make it invisible if not admin
+                  pointerEvents: 'auto', // Allow clicks only if admin
+                }}
               >
-                {dbBuilt
-                  ? "Build Vector Database"
-                  : !loading.insertCsv
-                    ? "Build Vector Database"
-                    : "Embedding and inserting in progress..."}
+                {loading.insertCsv
+                  ? `Embedding and inserting ...`
+                  : "admin - don't press"}
               </Button>
-              <Button onClick={() => downloadJSON(value)} variant="faded">
+              <Button onClick={() => downloadJSON(value)} variant="faded" disabled={data.length === 0}>
                 Download JSON Results
               </Button>
-
             </>
           )}
         </div>

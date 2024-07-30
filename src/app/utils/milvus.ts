@@ -25,12 +25,14 @@ class Milvus {
   private _MAX_INSERT_COUNT = 1000;
   private _insert_progress = 0;
   private _is_inserting = false;
+  private _has_data = false;
   private _error_msg = "";
 
   constructor() {
     if (!this._client) {
       this.init();
     }
+    this.initHasData();
   }
 
   public getClient() {
@@ -101,6 +103,7 @@ class Milvus {
   public async insert(data: InsertReq) {
     try {
       const res = await this._client?.insert(data);
+      this._has_data = true;
       return res;
     } catch (error) {
       throw error;
@@ -116,7 +119,6 @@ class Milvus {
       const endIndex = Math.min(startIndex + this._MAX_INSERT_COUNT, total);
       const insertDataItems = dataItems.slice(startIndex, endIndex);
       this._is_inserting = true;
-
       if (startIndex === 0) {
         this._insert_progress = 0;
       }
@@ -149,6 +151,23 @@ class Milvus {
       this._insert_progress = 0;
       this._is_inserting = false;
       this._error_msg = (error as any).message || "Insert failed";
+    }
+  }
+
+  private async initHasData() {
+    this._has_data = await this.isContentPresent();
+  }
+
+  public async isContentPresent(): Promise<boolean> {
+    try {
+      const queryResult = await this._client?.query({
+        collection_name: COLLECTION_NAME,
+        limit: 1,
+      });
+      return !!queryResult?.data && queryResult.data.length > 0;
+    } catch (error) {
+      console.error("Error checking for content presence:", error);
+      return false;
     }
   }
 

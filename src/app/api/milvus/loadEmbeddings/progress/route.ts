@@ -11,5 +11,6 @@ export async function GET(req: NextRequest) {
     progress: milvus.insertProgress,
     isInserting: milvus.isInserting,
     errorMsg: milvus.errorMsg,
+    content: milvus.isContentPresent,
   });
 }
