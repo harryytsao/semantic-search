@@ -7,17 +7,21 @@
 If it's the first time running the project:
 
 ```bash
-git clone <repository-url>
-cd <project-directory>
+git clone https://github.com/harryytsao/semantic-search.git
+cd semantic-search
 mv .env.demo .env
 npm install
 npm run build
+bash standalone_embed.sh start
+npm run start
 ```
 
-## Starting Milvus
+To build the vector DB, there is a hidden button to the left of "Download JSON Results"
 
-To start Milvus:
+## Milvus Commands
 
 ```bash
 bash standalone_embed.sh start
+bash standalone_embed.sh stop
+bash standalone_embed.sh delete
 ```
